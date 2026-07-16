@@ -104,6 +104,24 @@ fallido sin perder la caché de los sanos.
 | Detalle de un similar falla o expira | Se omite; `200` con el resto |
 | Producto sin similares | `200` con `[]` |
 
+### Observabilidad: métricas de caché
+
+Las cachés registran estadísticas (`recordStats`) que Micrometer expone vía Actuator,
+para poder ajustar TTL y tamaño con datos reales en lugar de intuición:
+
+```bash
+# hit rate de la caché de productos
+curl "localhost:5000/actuator/metrics/cache.gets?tag=cache:products&tag=result:hit"
+curl "localhost:5000/actuator/metrics/cache.gets?tag=cache:products&tag=result:miss"
+
+# tamaño y desalojos
+curl "localhost:5000/actuator/metrics/cache.size?tag=cache:products"
+curl "localhost:5000/actuator/metrics/cache.evictions?tag=cache:products"
+
+# cachés registradas
+curl localhost:5000/actuator/caches
+```
+
 ## Configuración
 
 | Property | Default | Descripción |

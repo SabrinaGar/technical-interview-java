@@ -21,10 +21,12 @@ public class CacheConfig {
         cacheManager.registerCustomCache(SIMILAR_IDS_CACHE, Caffeine.newBuilder()
                 .expireAfterWrite(properties.ttl())
                 .maximumSize(properties.maxSize())
+                .recordStats()
                 .build());
         cacheManager.registerCustomCache(PRODUCTS_CACHE, Caffeine.newBuilder()
                 .expireAfter(new ProductExpiry(properties.ttl(), properties.failureTtl()))
                 .maximumSize(properties.maxSize())
+                .recordStats()
                 .build());
         return cacheManager;
     }
