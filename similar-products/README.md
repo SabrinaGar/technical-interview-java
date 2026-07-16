@@ -82,9 +82,12 @@ Dos cachés en memoria (máx. 10.000 entradas):
 - `products`: detalle por producto, con **expiración variable por entrada**
   (`ProductExpiry`, un `Expiry` de Caffeine):
   - **Aciertos: 30s** — un detalle de producto sano se reutiliza durante todo el TTL.
-  - **Fallos: 5s (caché negativa)** — si un producto falló (404/500/timeout) se cachea
-    el resultado vacío para no reintentar en cada request, pero con un TTL corto para
-    que un upstream que se recupera vuelva a aparecer en las respuestas rápidamente.
+  - **Fallos: 15s (caché negativa)** — si un producto falló (404/500/timeout) se cachea
+    el resultado vacío para no reintentar en cada request, pero con un TTL más corto
+    para que un upstream que se recupera vuelva a aparecer en las respuestas antes.
+    El valor equilibra frescura y latencia estable: cada reintento de un producto que
+    sigue caído bloquea (por el `sync`) a las peticiones concurrentes de ese producto
+    durante el read timeout, así que reintentar demasiado a menudo degrada el p95.
 
 Con `sync = true` se evita la estampida de caché: ante N requests concurrentes del
 mismo producto frío, solo un hilo llama al upstream y el resto espera ese resultado.
@@ -109,7 +112,7 @@ fallido sin perder la caché de los sanos.
 | `product-api.connect-timeout` | `1s` | Timeout de conexión |
 | `product-api.read-timeout` | `2s` | Timeout de lectura por llamada |
 | `product-api.cache.ttl` | `30s` | Expiración de resultados correctos |
-| `product-api.cache.failure-ttl` | `5s` | Expiración de fallos cacheados (caché negativa) |
+| `product-api.cache.failure-ttl` | `15s` | Expiración de fallos cacheados (caché negativa) |
 | `product-api.cache.max-size` | `10000` | Entradas máximas por caché |
 
 ## Resultados del test de carga (k6, 200 VUs, 5 escenarios)
