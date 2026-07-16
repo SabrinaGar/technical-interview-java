@@ -5,5 +5,5 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "product-api.cache")
-public record CacheProperties(Duration ttl, long maxSize) {
+public record CacheProperties(Duration ttl, Duration failureTtl, long maxSize) {
 }

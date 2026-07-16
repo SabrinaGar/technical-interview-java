@@ -17,10 +17,15 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager(CacheProperties properties) {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager(PRODUCTS_CACHE, SIMILAR_IDS_CACHE);
-        cacheManager.setCaffeine(Caffeine.newBuilder()
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+        cacheManager.registerCustomCache(SIMILAR_IDS_CACHE, Caffeine.newBuilder()
                 .expireAfterWrite(properties.ttl())
-                .maximumSize(properties.maxSize()));
+                .maximumSize(properties.maxSize())
+                .build());
+        cacheManager.registerCustomCache(PRODUCTS_CACHE, Caffeine.newBuilder()
+                .expireAfter(new ProductExpiry(properties.ttl(), properties.failureTtl()))
+                .maximumSize(properties.maxSize())
+                .build());
         return cacheManager;
     }
 }

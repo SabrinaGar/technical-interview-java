@@ -74,20 +74,24 @@ timeouts, un solo producto lento colgaría el request (y con 200 VUs, todo el se
 los mocks) quedan fuera de la respuesta. Se priorizó latencia y throughput sobre
 completitud; el umbral es un ajuste de configuración, no de código.
 
-### Caché: Caffeine con TTL corto
+### Caché: Caffeine con TTL diferenciado por resultado
 
-Dos cachés en memoria (TTL 30s, máx. 10.000 entradas):
+Dos cachés en memoria (máx. 10.000 entradas):
 
-- `similar-ids`: ids similares por producto.
-- `products`: detalle por producto — incluye **caché negativa**: si un producto falló
-  (404/500/timeout) se cachea el resultado vacío, de forma que un upstream lento o roto
-  se paga una sola vez por TTL y no en cada request.
+- `similar-ids`: ids similares por producto (TTL 30s).
+- `products`: detalle por producto, con **expiración variable por entrada**
+  (`ProductExpiry`, un `Expiry` de Caffeine):
+  - **Aciertos: 30s** — un detalle de producto sano se reutiliza durante todo el TTL.
+  - **Fallos: 5s (caché negativa)** — si un producto falló (404/500/timeout) se cachea
+    el resultado vacío para no reintentar en cada request, pero con un TTL corto para
+    que un upstream que se recupera vuelva a aparecer en las respuestas rápidamente.
 
 Con `sync = true` se evita la estampida de caché: ante N requests concurrentes del
 mismo producto frío, solo un hilo llama al upstream y el resto espera ese resultado.
 
 Efecto medido: la primera petición de un producto con upstream lento tarda ~2s (el
-timeout); las siguientes ~3ms.
+timeout), las siguientes ~3ms, y a los 5s se hace un único reintento del producto
+fallido sin perder la caché de los sanos.
 
 ### Manejo de errores
 
@@ -104,7 +108,8 @@ timeout); las siguientes ~3ms.
 | `product-api.base-url` | `http://localhost:3001` | Base URL de las APIs existentes |
 | `product-api.connect-timeout` | `1s` | Timeout de conexión |
 | `product-api.read-timeout` | `2s` | Timeout de lectura por llamada |
-| `product-api.cache.ttl` | `30s` | Expiración de las cachés |
+| `product-api.cache.ttl` | `30s` | Expiración de resultados correctos |
+| `product-api.cache.failure-ttl` | `5s` | Expiración de fallos cacheados (caché negativa) |
 | `product-api.cache.max-size` | `10000` | Entradas máximas por caché |
 
 ## Resultados del test de carga (k6, 200 VUs, 5 escenarios)
