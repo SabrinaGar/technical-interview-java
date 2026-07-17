@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.interview.similarproducts.exception.ProductNotFoundException;
+import com.interview.similarproducts.exception.UpstreamUnavailableException;
 import com.interview.similarproducts.model.ProductDetail;
 import com.interview.similarproducts.service.SimilarProductsService;
 
@@ -55,6 +56,17 @@ class SimilarProductsControllerTest {
         when(similarProductsService.getSimilarProducts("99")).thenThrow(new ProductNotFoundException("99"));
 
         mockMvc.perform(get("/product/99/similar"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Product not found: 99"));
+    }
+
+    @Test
+    void returnsBadGatewayWhenTheUpstreamApiFails() throws Exception {
+        when(similarProductsService.getSimilarProducts("1"))
+                .thenThrow(new UpstreamUnavailableException("1", new RuntimeException("boom")));
+
+        mockMvc.perform(get("/product/1/similar"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.detail").value("Could not retrieve similar products for product: 1"));
     }
 }

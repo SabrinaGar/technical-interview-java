@@ -1,7 +1,6 @@
 package com.interview.similarproducts.config;
 
 import java.time.Duration;
-import java.util.Optional;
 
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.interview.similarproducts.model.ProductDetail;
@@ -39,7 +38,6 @@ class ProductExpiry implements Expiry<Object, Object> {
     private boolean isSuccess(Object value) {
         // Spring stores the unwrapped Optional: a ProductDetail on success or a
         // NullValue marker when the product could not be retrieved.
-        return value instanceof ProductDetail
-                || (value instanceof Optional<?> optional && optional.isPresent());
+        return value instanceof ProductDetail;
     }
 }
