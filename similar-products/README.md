@@ -43,7 +43,7 @@ Controller  →  Service  →  Client (RestClient)  →  APIs existentes (:3001)
 
 | Capa | Clase | Responsabilidad |
 |------|-------|-----------------|
-| Controller | `SimilarProductsController` | Expone el contrato REST; `ApiExceptionHandler` traduce `ProductNotFoundException` a 404 |
+| Controller | `SimilarProductsController` | Expone el contrato REST; `ApiExceptionHandler` traduce las excepciones de dominio a 404/502 |
 | Service | `SimilarProductsService` | Orquesta: obtiene los IDs similares y pide los detalles **en paralelo**, preservando el orden de similitud |
 | Client | `ProductApiClient` | Única puerta de salida HTTP; encapsula timeouts, manejo de errores y caché |
 | Config | `ProductApiClientConfig`, `CacheConfig`, properties tipadas | Toda la configuración es externa (`application.properties`) |
@@ -101,8 +101,12 @@ fallido sin perder la caché de los sanos.
 | Situación | Respuesta |
 |-----------|-----------|
 | Producto consultado no existe | `404` (contrato) |
+| Fallo del upstream al pedir los similarids | `502` — sin los ids no hay respuesta posible |
 | Detalle de un similar falla o expira | Se omite; `200` con el resto |
 | Producto sin similares | `200` con `[]` |
+
+Los errores devuelven un cuerpo `application/problem+json` (RFC 7807, `ProblemDetail`
+de Spring) con el detalle del fallo.
 
 ### Observabilidad: métricas de caché
 

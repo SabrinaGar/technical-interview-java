@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClientException;
 
 import com.interview.similarproducts.config.CacheConfig;
 import com.interview.similarproducts.exception.ProductNotFoundException;
+import com.interview.similarproducts.exception.UpstreamUnavailableException;
 import com.interview.similarproducts.model.ProductDetail;
 
 @Component
@@ -27,6 +28,10 @@ public class ProductApiClient {
         this.restClient = productRestClient;
     }
 
+    /**
+     * Without the similar ids there is no answer to give, so upstream failures
+     * other than a 404 are propagated for the API to report them.
+     */
     @Cacheable(cacheNames = CacheConfig.SIMILAR_IDS_CACHE, sync = true)
     public List<String> getSimilarIds(String productId) {
         try {
@@ -38,6 +43,9 @@ public class ProductApiClient {
             return ids != null ? ids : List.of();
         } catch (HttpClientErrorException.NotFound e) {
             throw new ProductNotFoundException(productId);
+        } catch (RestClientException e) {
+            log.warn("Could not fetch similar ids for product {}: {}", productId, e.getMessage());
+            throw new UpstreamUnavailableException(productId, e);
         }
     }
 
